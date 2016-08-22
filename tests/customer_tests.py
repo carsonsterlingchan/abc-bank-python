@@ -1,7 +1,7 @@
-from nose.tools import assert_equals, nottest
+from nose.tools import assert_equals, assert_raises, nottest
 
-from account import Account, CHECKING, SAVINGS
-from customer import Customer
+from abcbank.account import Account, CHECKING, SAVINGS, MAXI_SAVINGS
+from abcbank.customer import Customer
 
 
 def test_statement():
@@ -29,8 +29,33 @@ def test_twoAccounts():
     assert_equals(oscar.numAccs(), 2)
 
 
-@nottest
 def test_threeAccounts():
     oscar = Customer("Oscar").openAccount(Account(SAVINGS))
     oscar.openAccount(Account(CHECKING))
+    oscar.openAccount(Account(MAXI_SAVINGS))
     assert_equals(oscar.numAccs(), 3)
+
+def test_withdrawl_error():
+    checkingAccount = Account(CHECKING)
+    david = Customer("David").openAccount(checkingAccount)
+    checkingAccount.deposit(100.0)
+    assert_raises(Exception, checkingAccount.withdraw, 200)
+
+def test_transfer():
+    checkingAccount = Account(CHECKING)
+    savingsAccount = Account(SAVINGS)
+    henry = Customer("Henry").openAccount(checkingAccount).openAccount(savingsAccount)
+    checkingAccount.deposit(100.0)
+    savingsAccount.deposit(4000.0)
+    henry.transferAccounts(savingsAccount, checkingAccount, 1000)
+    assert_equals(savingsAccount.sumTransactions(), 3000)
+    assert_equals(checkingAccount.sumTransactions(), 1100)
+    
+def test_transfer_with_insufficientfund():
+    checkingAccount = Account(CHECKING)
+    savingsAccount = Account(SAVINGS)
+    john = Customer("John").openAccount(checkingAccount).openAccount(savingsAccount)
+    checkingAccount.deposit(100.0)
+    savingsAccount.deposit(4000.0)
+    assert_raises(Exception, john.transferAccounts, (savingsAccount, checkingAccount, 5000))
+
